@@ -24,6 +24,8 @@ import com.ibm.engine.language.csharp.CSharpLanguageSupport;
 import com.ibm.engine.language.csharp.CSharpScanContext;
 import com.ibm.engine.language.csharp.CSharpSymbol;
 import com.ibm.engine.language.csharp.tree.CSharpTree;
+import com.ibm.engine.language.cxx.CxxLanguageSupport;
+import com.ibm.engine.language.cxx.CxxScanContext;
 import com.ibm.engine.language.go.GoLanguageSupport;
 import com.ibm.engine.language.go.GoScanContext;
 import com.ibm.engine.language.java.JavaLanguageSupport;
@@ -72,5 +74,10 @@ public final class LanguageSupporter {
     public static ILanguageSupport<CSharpCheck, CSharpTree, CSharpSymbol, CSharpScanContext>
             csharpLanguageSupporter() {
         return new CSharpLanguageSupport();
+    }
+
+    @Nonnull
+    public static ILanguageSupport<Object, Object, Object, CxxScanContext> cxxLanguageSupporter() {
+        return new CxxLanguageSupport();
     }
 }

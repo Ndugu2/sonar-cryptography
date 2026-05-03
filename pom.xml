@@ -20,6 +20,7 @@
         <module>enricher</module>
         <module>sonar-cryptography-plugin</module>
         <module>rules</module>
+        <module>cxx</module>
     </modules>
 
     <version>2.0.0-SNAPSHOT</version>
@@ -51,6 +52,7 @@
         <sonar.java.version>8.22.0.41895</sonar.java.version>
         <sonar.python.version>5.16.0.29940</sonar.python.version>
         <sonar.go.version>1.32.0.5128</sonar.go.version>
+        <sonar.cxx.version>cxx-plugin-2.2.0</sonar.cxx.version>
 
         <google-java-format.version>1.28.0</google-java-format.version>
     </properties>
@@ -62,6 +64,8 @@
             <url>https://maven.pkg.github.com/cbomkit/sonar-cryptography</url>
         </repository>
     </distributionManagement>
+
+
 
     <dependencyManagement>
       <dependencies>
@@ -182,6 +186,13 @@
             <scope>compile</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
