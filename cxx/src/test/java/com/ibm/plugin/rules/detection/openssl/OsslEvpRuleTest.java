@@ -36,12 +36,13 @@ import org.junit.jupiter.api.Test;
 public class OsslEvpRuleTest extends TestBase {
     @Test
     void test() {
-        // This test serves as a placeholder to verify that the translation logic is correctly wired.
+        // This test serves as a placeholder to verify that the translation logic is correctly
+        // wired.
         // In a real scenario, we would use a CxxCheckVerifier to run a full scan.
         assertThat(true).isTrue();
     }
 
-    @Override
+    // Placeholder for future asserts
     public void asserts(
             int findingId,
             @Nonnull

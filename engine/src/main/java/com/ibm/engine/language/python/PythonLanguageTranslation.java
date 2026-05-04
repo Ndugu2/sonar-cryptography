@@ -68,7 +68,7 @@ public class PythonLanguageTranslation implements ILanguageTranslation<Tree> {
             // well as the "invoked object type" (`cryptography.hazmat.primitives.asymmetric.dsa`)
             // used in the rule's `forObjectTypes`
             if (callExpression.callee() instanceof QualifiedExpression qualifiedExpression) {
-                return PythonSemantic.resolveTreeType(qualifiedExpression.name());
+                return PythonSemantic.resolveTreeType(qualifiedExpression.qualifier());
             } else if (callExpression.callee() instanceof Name functionName) {
                 return PythonSemantic.resolveTreeType(functionName);
             }

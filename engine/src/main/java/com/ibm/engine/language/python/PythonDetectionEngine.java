@@ -230,8 +230,7 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
         throw new UnsupportedOperationException("Unimplemented method 'resolveMethodReturnValues'");
     }
 
-    @Nullable
-    @Override
+    @Nullable @Override
     public <O> ResolvedValue<O, Tree> resolveEnumValue(
             @Nonnull Class<O> clazz,
             @Nonnull Tree enumClassDefinition,
@@ -317,7 +316,8 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
             if (expressionArg.is(Tree.Kind.NAME)) {
                 Name nameArg = (Name) expressionArg;
                 @Nonnull
-                Optional<TraceSymbol<Symbol>> res = Optional.of(TraceSymbol.createFrom(nameArg.symbol()));
+                Optional<TraceSymbol<Symbol>> res =
+                        Optional.of(TraceSymbol.createFrom(nameArg.symbol()));
                 return res;
             }
         }
@@ -334,24 +334,24 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 return false;
             }
             Symbol variable = variableSymbol.getSymbol();
-            Expression callee = callExpression.callee();
-            if (variable == null || !callee.is(Tree.Kind.QUALIFIED_EXPR)) {
+            if (variable == null) {
                 return false;
             }
 
-            QualifiedExpression qualifiedExpression = (QualifiedExpression) callee;
-            if (qualifiedExpression.qualifier() instanceof Name name) {
-                Optional<String> nameString = Optional.of(name).map(Name::symbol).map(Symbol::name);
-                return nameString.isPresent() && nameString.get().equals(variable.name());
+            if (callExpression.callee() instanceof QualifiedExpression qualifiedExpression) {
+                Expression qualifier = qualifiedExpression.qualifier();
+                if (qualifier instanceof Name name) {
+                    Symbol qualifierSymbol = name.symbol();
+                    return variable.equals(qualifierSymbol);
+                }
             }
-
-            return false;
         }
         return false;
     }
 
     @Override
-    public boolean isInitForVariable(@Nonnull Tree newClass, @Nonnull TraceSymbol<Symbol> variableSymbol) {
+    public boolean isInitForVariable(
+            @Nonnull Tree newClass, @Nonnull TraceSymbol<Symbol> variableSymbol) {
         if (!variableSymbol.is(TraceSymbol.State.SYMBOL)) {
             return false;
         }
@@ -368,6 +368,20 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
 
     private void analyseExpression(
             @Nonnull TraceSymbol<Symbol> traceSymbol, @Nonnull CallExpression expressionTree) {
+        boolean isInvocation =
+                isInvocationOnVariable(expressionTree, traceSymbol)
+                        || isInitForVariable(expressionTree, traceSymbol);
+
+        // Check if the variable symbols for the method (if applicable) are connected
+        Optional<Symbol> assignedSymbol =
+                getAssignedSymbol(expressionTree).map(TraceSymbol::getSymbol);
+
+        if (traceSymbol.is(TraceSymbol.State.DIFFERENT)
+                || (traceSymbol.is(TraceSymbol.State.SYMBOL) && !isInvocation)
+                || (traceSymbol.is(TraceSymbol.State.NO_SYMBOL) && assignedSymbol.isPresent())) {
+            return;
+        }
+
         if (detectionStore.getDetectionRule().is(MethodDetectionRule.class)) {
             MethodDetection<Tree> methodDetection = new MethodDetection<>(expressionTree, null);
             detectionStore.onReceivingNewDetection(methodDetection);
@@ -382,16 +396,10 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
 
         // Extracts the arguments for the provided expression
         @Nonnull List<Argument> arguments = expressionTree.arguments();
-        boolean isInvocation =
-                isInvocationOnVariable(expressionTree, traceSymbol)
-                        || isInitForVariable(expressionTree, traceSymbol);
-        // TODO: It would be better to have a case disjunction to use either
-        // isInvocationOnVariable or isInitForVariable, but it is difficult in Python
 
         int index = 0;
         for (Parameter<Tree> parameter : detectionRule.parameters()) {
-            if (!checkCurrentIndexState(
-                    index, arguments, isInvocation, traceSymbol, expressionTree)) {
+            if (arguments.size() <= index) {
                 index++;
                 continue;
             }
@@ -419,14 +427,14 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 } else {
                     resolvedValues.stream()
                             .map(
-                                resolvedValue -> {
-                                    @Nonnull ResolvedValue<Object, Tree> val = resolvedValue;
-                                    return new ValueDetection<>(
-                                            val,
-                                            detectableParameter,
-                                            expressionTree,
-                                            expressionTree);
-                                })
+                                    resolvedValue -> {
+                                        @Nonnull ResolvedValue<Object, Tree> val = resolvedValue;
+                                        return new ValueDetection<>(
+                                                val,
+                                                detectableParameter,
+                                                expressionTree,
+                                                expressionTree);
+                                    })
                             .forEach(detectionStore::onReceivingNewDetection);
                 }
             } else if (!parameter.getDetectionRules().isEmpty()) {
@@ -444,35 +452,5 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
 
             index++;
         }
-    }
-
-    private boolean checkCurrentIndexState(
-            int index,
-            @Nonnull List<Argument> arguments,
-            boolean isInvocation,
-            @Nonnull TraceSymbol<Symbol> traceSymbol,
-            @Nonnull CallExpression expressionTree) {
-        /*
-         * Check if the matched method does have equal or less number of arguments compared to the index
-         * of interested defined in the detection rule.
-         * This will prevent an index out of bound
-         */
-        if (arguments.size() <= index) {
-            return false;
-        }
-
-        @Nonnull CallExpression exprTree = expressionTree;
-        // Check if the variable symbols for the method (if applicable) are connected
-        Optional<Symbol> assignedSymbol =
-                getAssignedSymbol(exprTree).map(ts -> ts.getSymbol());
-
-        return !(traceSymbol.is(TraceSymbol.State.DIFFERENT)
-                ||
-                // checks if a symbol is set and therefore expected, then check if the symbols
-                // match.
-                (traceSymbol.is(TraceSymbol.State.SYMBOL) && !isInvocation)
-                ||
-                // checks if no symbol is expected, but the matched method has one.
-                (traceSymbol.is(TraceSymbol.State.NO_SYMBOL) && assignedSymbol.isPresent()));
     }
 }

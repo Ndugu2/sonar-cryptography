@@ -131,8 +131,8 @@ public final class PythonSemantic {
                                     Objects.equals(nameClassSymbol.fullyQualifiedName(), string));
                 }
             }
-            // Otherwise, we accept all types
-            return Optional.of((String string) -> true);
+            // Otherwise, we do not accept any type
+            return Optional.of((String string) -> false);
         }
 
         // Obtain the type from the content
