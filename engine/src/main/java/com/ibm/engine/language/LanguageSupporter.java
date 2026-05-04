@@ -77,7 +77,12 @@ public final class LanguageSupporter {
     }
 
     @Nonnull
-    public static ILanguageSupport<Object, Object, Object, CxxScanContext> cxxLanguageSupporter() {
+    public static ILanguageSupport<
+                    com.ibm.engine.language.cxx.CxxCheck,
+                    org.antlr.v4.runtime.ParserRuleContext,
+                    com.ibm.engine.language.cxx.CxxSymbol,
+                    CxxScanContext>
+            cxxLanguageSupporter() {
         return new CxxLanguageSupport();
     }
 }

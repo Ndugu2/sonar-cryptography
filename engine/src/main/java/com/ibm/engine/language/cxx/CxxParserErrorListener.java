@@ -1,6 +1,6 @@
 /*
  * Sonar Cryptography Plugin
- * Copyright (C) 2026 PQCA
+ * Copyright (C) 2024 PQCA
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -19,25 +19,31 @@
  */
 package com.ibm.engine.language.cxx;
 
-import com.ibm.engine.detection.IBaseMethodVisitor;
-import com.ibm.engine.detection.IDetectionEngine;
-import com.ibm.engine.detection.TraceSymbol;
 import javax.annotation.Nonnull;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.sonar.api.batch.fs.InputFile;
 
-public class CxxBaseMethodVisitor implements IBaseMethodVisitor<ParserRuleContext> {
-    private final TraceSymbol<CxxSymbol> traceSymbol;
-    private final IDetectionEngine<ParserRuleContext, CxxSymbol> detectionEngine;
+public class CxxParserErrorListener extends BaseErrorListener {
 
-    public CxxBaseMethodVisitor(
-            TraceSymbol<CxxSymbol> traceSymbol,
-            IDetectionEngine<ParserRuleContext, CxxSymbol> detectionEngine) {
-        this.traceSymbol = traceSymbol;
-        this.detectionEngine = detectionEngine;
+    private static final Logger LOG = LoggerFactory.getLogger(CxxParserErrorListener.class);
+    private final InputFile inputFile;
+
+    public CxxParserErrorListener(@Nonnull InputFile inputFile) {
+        this.inputFile = inputFile;
     }
 
     @Override
-    public void visitMethodDefinition(@Nonnull ParserRuleContext method) {
-        detectionEngine.run(traceSymbol, method);
+    public void syntaxError(
+            Recognizer<?, ?> recognizer,
+            Object offendingSymbol,
+            int line,
+            int charPositionInLine,
+            String msg,
+            RecognitionException e) {
+        LOG.debug("Syntax error in {}:{}:{} {}", inputFile, line, charPositionInLine, msg);
     }
 }

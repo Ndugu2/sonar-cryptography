@@ -22,6 +22,8 @@ package com.ibm.plugin;
 import org.sonar.api.server.rule.RulesDefinition;
 
 public class CxxScannerRuleDefinition implements RulesDefinition {
+    public static final String REPOSITORY_KEY = "cbomkit-cryptography-cxx";
+
     @Override
     public void define(Context context) {
         NewRepository repository =

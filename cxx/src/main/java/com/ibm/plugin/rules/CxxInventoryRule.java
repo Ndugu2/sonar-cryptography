@@ -20,26 +20,54 @@
 package com.ibm.plugin.rules;
 
 import com.ibm.common.IObserver;
+import com.ibm.engine.detection.Finding;
+import com.ibm.engine.executive.DetectionExecutive;
+import com.ibm.engine.language.cxx.CxxCheck;
+import com.ibm.engine.language.cxx.CxxLanguageSupport;
+import com.ibm.engine.language.cxx.CxxScanContext;
+import com.ibm.engine.language.cxx.CxxSymbol;
+import com.ibm.engine.language.cxx.antlr.CPP14Parser;
 import com.ibm.engine.rule.IDetectionRule;
 import com.ibm.mapper.model.INode;
 import com.ibm.plugin.CxxAggregator;
 import com.ibm.plugin.rules.detection.CxxDetectionRules;
 import com.ibm.plugin.translation.CxxTranslationProcess;
+import com.ibm.plugin.translation.reorganizer.CxxReorganizerRules;
 import java.util.List;
+import javax.annotation.Nonnull;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.sonar.check.Rule;
 
-// TODO: Should extend the sonar-cxx specific Visitor/Check class
-public class CxxInventoryRule implements IObserver<List<INode>> {
+@Rule(key = "CxxInventoryRule")
+public class CxxInventoryRule
+        implements CxxCheck,
+                IObserver<Finding<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>> {
 
-    private final List<IDetectionRule<Object>> detectionRules;
+    private final List<IDetectionRule<ParserRuleContext>> detectionRules;
     private final CxxTranslationProcess translationProcess;
 
     public CxxInventoryRule() {
         this.detectionRules = CxxDetectionRules.rules();
-        this.translationProcess = new CxxTranslationProcess();
+        this.translationProcess = new CxxTranslationProcess(CxxReorganizerRules.rules());
     }
 
     @Override
-    public void update(List<INode> nodes) {
+    public void scan(
+            @Nonnull CxxScanContext scanContext, @Nonnull CPP14Parser.TranslationUnitContext tree) {
+        CxxLanguageSupport languageSupport = new CxxLanguageSupport();
+        for (IDetectionRule<ParserRuleContext> rule : detectionRules) {
+            DetectionExecutive<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+                    detectionExecutive =
+                            languageSupport.createDetectionExecutive(tree, rule, scanContext);
+            detectionExecutive.subscribe(this);
+            detectionExecutive.start();
+        }
+    }
+
+    @Override
+    public void update(
+            @Nonnull Finding<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> finding) {
+        final List<INode> nodes = translationProcess.initiate(finding.detectionStore());
         nodes.forEach(CxxAggregator::addNode);
     }
 }

@@ -34,11 +34,12 @@ import com.ibm.engine.rule.IDetectionRule;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 public final class CxxLanguageSupport
-        implements ILanguageSupport<Object, Object, Object, CxxScanContext> {
+        implements ILanguageSupport<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> {
 
-    @Nonnull private final Handler<Object, Object, Object, CxxScanContext> handler;
+    @Nonnull private final Handler<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> handler;
 
     @Nonnull private final CxxLanguageTranslation translation;
 
@@ -49,46 +50,50 @@ public final class CxxLanguageSupport
 
     @Nonnull
     @Override
-    public ILanguageTranslation<Object> translation() {
+    public ILanguageTranslation<ParserRuleContext> translation() {
         return translation;
     }
 
     @Nonnull
     @Override
-    public DetectionExecutive<Object, Object, Object, CxxScanContext> createDetectionExecutive(
-            @Nonnull Object tree,
-            @Nonnull IDetectionRule<Object> detectionRule,
-            @Nonnull IScanContext<Object, Object> scanContext) {
+    public DetectionExecutive<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+            createDetectionExecutive(
+                    @Nonnull ParserRuleContext tree,
+                    @Nonnull IDetectionRule<ParserRuleContext> detectionRule,
+                    @Nonnull IScanContext<CxxCheck, ParserRuleContext> scanContext) {
         return new DetectionExecutive<>(tree, detectionRule, scanContext, this.handler);
     }
 
     @Nonnull
     @Override
-    public IDetectionEngine<Object, Object> createDetectionEngineInstance(
-            @Nonnull DetectionStore<Object, Object, Object, CxxScanContext> detectionStore) {
+    public IDetectionEngine<ParserRuleContext, CxxSymbol> createDetectionEngineInstance(
+            @Nonnull
+                    DetectionStore<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+                            detectionStore) {
         return new CxxDetectionEngine(detectionStore, this.handler);
     }
 
     @Nonnull
     @Override
-    public IBaseMethodVisitorFactory<Object, Object> getBaseMethodVisitorFactory() {
+    public IBaseMethodVisitorFactory<ParserRuleContext, CxxSymbol> getBaseMethodVisitorFactory() {
         return CxxBaseMethodVisitor::new;
     }
 
     @Nonnull
     @Override
-    public Optional<Object> getEnclosingMethod(@Nonnull Object expression) {
+    public Optional<ParserRuleContext> getEnclosingMethod(@Nonnull ParserRuleContext expression) {
         return Optional.empty();
     }
 
     @Nullable @Override
-    public MethodMatcher<Object> createMethodMatcherBasedOn(@Nonnull Object methodDefinition) {
+    public MethodMatcher<ParserRuleContext> createMethodMatcherBasedOn(
+            @Nonnull ParserRuleContext methodDefinition) {
         return null;
     }
 
     @Nullable @Override
-    public EnumMatcher<Object> createSimpleEnumMatcherFor(
-            @Nonnull Object enumIdentifier, @Nonnull MatchContext matchContext) {
+    public EnumMatcher<ParserRuleContext> createSimpleEnumMatcherFor(
+            @Nonnull ParserRuleContext enumIdentifier, @Nonnull MatchContext matchContext) {
         return null;
     }
 }

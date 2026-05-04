@@ -23,9 +23,14 @@ import com.ibm.engine.rule.IDetectionRule;
 import com.ibm.plugin.rules.detection.openssl.OpenSSLDetectionRules;
 import java.util.List;
 import java.util.stream.Stream;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 public class CxxDetectionRules {
-    public static List<IDetectionRule<Object>> rules() {
+    private CxxDetectionRules() {
+        // private
+    }
+
+    public static List<IDetectionRule<ParserRuleContext>> rules() {
         return Stream.of(OpenSSLDetectionRules.rules().stream()).flatMap(i -> i).toList();
     }
 }

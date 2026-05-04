@@ -1,6 +1,6 @@
 /*
  * Sonar Cryptography Plugin
- * Copyright (C) 2026 PQCA
+ * Copyright (C) 2024 PQCA
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -21,30 +21,52 @@ package com.ibm.engine.language.cxx;
 
 import com.ibm.engine.language.IScanContext;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.sonar.api.batch.fs.InputFile;
+import org.sonar.api.batch.sensor.SensorContext;
+import org.sonar.api.batch.sensor.issue.NewIssue;
+import org.sonar.api.batch.sensor.issue.NewIssueLocation;
+import org.sonar.api.rule.RuleKey;
+import org.sonar.check.Rule;
 
-public class CxxScanContext implements IScanContext<Object, Object> {
-    private final Object visitorContext;
-
-    public CxxScanContext(Object visitorContext) {
-        this.visitorContext = visitorContext;
-    }
+/** C++ scan context wrapping the SonarQube SensorContext. */
+public record CxxScanContext(
+        @Nonnull SensorContext sensorContext,
+        @Nonnull InputFile inputFile,
+        @Nonnull String repositoryKey)
+        implements IScanContext<CxxCheck, ParserRuleContext> {
 
     @Override
     public void reportIssue(
-            @Nonnull Object currentRule, @Nonnull Object tree, @Nonnull String message) {
-        // TODO: Implement issue reporting via sonar-cxx API
+            @Nonnull CxxCheck currentRule,
+            @Nonnull ParserRuleContext tree,
+            @Nonnull String message) {
+        String ruleKey = getRuleKey(currentRule);
+        if (ruleKey == null) {
+            return;
+        }
+        int line = Math.max(1, tree.getStart().getLine());
+        NewIssue issue = sensorContext.newIssue();
+        NewIssueLocation location =
+                issue.newLocation().on(inputFile).at(inputFile.selectLine(line)).message(message);
+        issue.forRule(RuleKey.of(repositoryKey, ruleKey)).at(location).save();
+    }
+
+    @Nullable private static String getRuleKey(@Nonnull CxxCheck rule) {
+        Rule annotation = rule.getClass().getAnnotation(Rule.class);
+        return annotation != null ? annotation.key() : null;
     }
 
     @Nonnull
     @Override
     public InputFile getInputFile() {
-        return null; // TODO: Implement returning InputFile
+        return inputFile;
     }
 
     @Nonnull
     @Override
     public String getFilePath() {
-        return ""; // TODO: Implement returning file path
+        return inputFile.uri().getPath();
     }
 }

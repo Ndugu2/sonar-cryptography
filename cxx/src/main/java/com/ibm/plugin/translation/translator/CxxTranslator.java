@@ -19,34 +19,56 @@
  */
 package com.ibm.plugin.translation.translator;
 
+import com.ibm.engine.language.cxx.CxxCheck;
 import com.ibm.engine.language.cxx.CxxScanContext;
+import com.ibm.engine.language.cxx.CxxSymbol;
 import com.ibm.engine.model.IValue;
+import com.ibm.engine.model.context.CipherContext;
 import com.ibm.engine.model.context.IDetectionContext;
 import com.ibm.engine.rule.IBundle;
 import com.ibm.mapper.ITranslator;
 import com.ibm.mapper.model.INode;
 import com.ibm.mapper.utils.DetectionLocation;
+import com.ibm.plugin.translation.translator.contexts.CxxCipherContextTranslator;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.antlr.v4.runtime.ParserRuleContext;
 
-public class CxxTranslator extends ITranslator<Object, Object, Object, CxxScanContext> {
+public class CxxTranslator
+        extends ITranslator<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> {
 
     @Nonnull
     @Override
     protected Optional<INode> translate(
             @Nonnull IBundle bundleIdentifier,
-            @Nonnull IValue<Object> value,
+            @Nonnull IValue<ParserRuleContext> value,
             @Nonnull IDetectionContext detectionValueContext,
             @Nonnull String filePath) {
-        // TODO: Implement translation logic for C++ findings
+        DetectionLocation detectionLocation =
+                getDetectionContextFrom(value.getLocation(), bundleIdentifier, filePath);
+        if (detectionLocation == null) {
+            return Optional.empty();
+        }
+
+        if (detectionValueContext.is(CipherContext.class)) {
+            CxxCipherContextTranslator cipherContextTranslator = new CxxCipherContextTranslator();
+            return cipherContextTranslator.translate(
+                    bundleIdentifier, value, detectionValueContext, detectionLocation);
+        }
+
         return Optional.empty();
     }
 
     @Nullable @Override
     protected DetectionLocation getDetectionContextFrom(
-            @Nonnull Object location, @Nonnull IBundle bundle, @Nonnull String filePath) {
-        // TODO: Implement location extraction logic
-        return null;
+            @Nonnull ParserRuleContext location,
+            @Nonnull IBundle bundle,
+            @Nonnull String filePath) {
+        int lineNumber = location.getStart().getLine();
+        int offset = location.getStart().getCharPositionInLine();
+        List<String> keywords = List.of(location.getText());
+        return new DetectionLocation(filePath, lineNumber, offset, keywords, bundle);
     }
 }

@@ -53,7 +53,7 @@ public class CryptographyPlugin implements Plugin {
                 CryptoCSharpSensor.class, // Custom sensor (sonar-csharp has no CheckRegistrar API)
                 // c++
                 CxxScannerRuleDefinition.class,
-                CxxCheckRegistrar.class,
+                CryptoCxxSensor.class,
                 // general
                 OutputFileJob.class);
     }

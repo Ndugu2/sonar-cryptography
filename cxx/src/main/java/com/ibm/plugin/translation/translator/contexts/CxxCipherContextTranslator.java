@@ -17,19 +17,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ibm.plugin.rules.detection.openssl;
+package com.ibm.plugin.translation.translator.contexts;
 
-import com.ibm.engine.rule.IDetectionRule;
-import java.util.List;
-import java.util.stream.Stream;
+import com.ibm.engine.model.IValue;
+import com.ibm.engine.model.context.IDetectionContext;
+import com.ibm.engine.rule.IBundle;
+import com.ibm.mapper.mapper.ssl.OsslCipherMapper;
+import com.ibm.mapper.model.INode;
+import com.ibm.mapper.utils.DetectionLocation;
+import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.antlr.v4.runtime.ParserRuleContext;
 
-public final class OpenSSLDetectionRules {
-    private OpenSSLDetectionRules() {
-        // private
-    }
+public final class CxxCipherContextTranslator {
 
-    public static List<IDetectionRule<ParserRuleContext>> rules() {
-        return Stream.of(OsslEvpRule.rules().stream()).flatMap(i -> i).toList();
+    @Nonnull
+    public Optional<INode> translate(
+            @Nonnull IBundle bundleIdentifier,
+            @Nonnull IValue<ParserRuleContext> value,
+            @Nonnull IDetectionContext detectionContext,
+            @Nonnull DetectionLocation detectionLocation) {
+
+        OsslCipherMapper osslCipherMapper = new OsslCipherMapper();
+        return osslCipherMapper.parse(value.asString(), detectionLocation).map(a -> a);
     }
 }

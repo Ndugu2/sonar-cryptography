@@ -1,6 +1,6 @@
 /*
  * Sonar Cryptography Plugin
- * Copyright (C) 2026 PQCA
+ * Copyright (C) 2024 PQCA
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,19 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ibm.plugin.rules.detection.openssl;
+package com.ibm.engine.language.cxx;
 
-import com.ibm.engine.rule.IDetectionRule;
-import java.util.List;
-import java.util.stream.Stream;
-import org.antlr.v4.runtime.ParserRuleContext;
+import javax.annotation.Nonnull;
 
-public final class OpenSSLDetectionRules {
-    private OpenSSLDetectionRules() {
-        // private
-    }
-
-    public static List<IDetectionRule<ParserRuleContext>> rules() {
-        return Stream.of(OsslEvpRule.rules().stream()).flatMap(i -> i).toList();
-    }
-}
+/** Representation of a C++ symbol (e.g. a variable name). */
+public record CxxSymbol(@Nonnull String name) {}

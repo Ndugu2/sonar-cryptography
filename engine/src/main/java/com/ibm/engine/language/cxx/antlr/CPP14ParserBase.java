@@ -17,19 +17,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ibm.plugin.rules.detection.openssl;
+package com.ibm.engine.language.cxx.antlr;
 
-import com.ibm.engine.rule.IDetectionRule;
-import java.util.List;
-import java.util.stream.Stream;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.*;
 
-public final class OpenSSLDetectionRules {
-    private OpenSSLDetectionRules() {
-        // private
+public abstract class CPP14ParserBase extends Parser {
+    protected CPP14ParserBase(TokenStream input) {
+        super(input);
     }
 
-    public static List<IDetectionRule<ParserRuleContext>> rules() {
-        return Stream.of(OsslEvpRule.rules().stream()).flatMap(i -> i).toList();
+    protected boolean IsPureSpecifierAllowed() {
+        try {
+            var x = this._ctx; // memberDeclarator
+            var c = x.getChild(0).getChild(0);
+            var c2 = c.getChild(0);
+            var p = c2.getChild(1);
+            if (p == null) return false;
+            return (p instanceof CPP14Parser.ParametersAndQualifiersContext);
+        } catch (Exception e) {
+        }
+        return false;
     }
 }

@@ -20,23 +20,47 @@
 package com.ibm.plugin.translation;
 
 import com.ibm.engine.detection.DetectionStore;
+import com.ibm.engine.language.cxx.CxxCheck;
 import com.ibm.engine.language.cxx.CxxScanContext;
+import com.ibm.engine.language.cxx.CxxSymbol;
+import com.ibm.enricher.Enricher;
 import com.ibm.mapper.ITranslationProcess;
 import com.ibm.mapper.model.INode;
+import com.ibm.mapper.reorganizer.IReorganizerRule;
+import com.ibm.mapper.reorganizer.Reorganizer;
+import com.ibm.mapper.utils.Utils;
 import com.ibm.plugin.translation.translator.CxxTranslator;
-import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 public class CxxTranslationProcess
-        implements ITranslationProcess<Object, Object, Object, CxxScanContext> {
+        extends ITranslationProcess<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> {
+
+    public CxxTranslationProcess(@Nonnull List<IReorganizerRule> reorganizerRules) {
+        super(reorganizerRules);
+    }
 
     @Nonnull
     @Override
     public List<INode> initiate(
-            @Nonnull DetectionStore<Object, Object, Object, CxxScanContext> rootDetectionStore) {
-        CxxTranslator translator = new CxxTranslator();
-        List<INode> translatedValues = translator.translate(rootDetectionStore);
-        return Collections.unmodifiableList(translatedValues);
+            @Nonnull
+                    DetectionStore<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+                            rootDetectionStore) {
+        // 1. Translate
+        final CxxTranslator translator = new CxxTranslator();
+        final List<INode> translatedValues = translator.translate(rootDetectionStore);
+        Utils.printNodeTree("translated ", translatedValues);
+
+        // 2. Reorganize
+        final Reorganizer cxxReorganizer = new Reorganizer(reorganizerRules);
+        final List<INode> reorganizedValues = cxxReorganizer.reorganize(translatedValues);
+        Utils.printNodeTree("reorganised", reorganizedValues);
+
+        // 3. Enrich
+        final List<INode> enrichedValues = Enricher.enrich(reorganizedValues).stream().toList();
+        Utils.printNodeTree("enriched   ", enrichedValues);
+
+        return enrichedValues.stream().toList();
     }
 }

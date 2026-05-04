@@ -22,8 +22,10 @@ package com.ibm.engine.language.cxx;
 import com.ibm.engine.detection.DetectionStore;
 import com.ibm.engine.detection.Handler;
 import com.ibm.engine.detection.IDetectionEngine;
+import com.ibm.engine.detection.MethodDetection;
 import com.ibm.engine.detection.ResolvedValue;
 import com.ibm.engine.detection.TraceSymbol;
+import com.ibm.engine.language.cxx.antlr.CPP14ParserBaseListener;
 import com.ibm.engine.model.factory.IValueFactory;
 import com.ibm.engine.rule.Parameter;
 import java.util.LinkedList;
@@ -31,95 +33,117 @@ import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-public class CxxDetectionEngine implements IDetectionEngine<Object, Object> {
-    private final DetectionStore<Object, Object, Object, CxxScanContext> detectionStore;
-    private final Handler<Object, Object, Object, CxxScanContext> handler;
+public class CxxDetectionEngine implements IDetectionEngine<ParserRuleContext, CxxSymbol> {
+    private final DetectionStore<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+            detectionStore;
+    private final Handler<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> handler;
 
     public CxxDetectionEngine(
-            @Nonnull DetectionStore<Object, Object, Object, CxxScanContext> detectionStore,
-            @Nonnull Handler<Object, Object, Object, CxxScanContext> handler) {
+            @Nonnull
+                    DetectionStore<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext>
+                            detectionStore,
+            @Nonnull Handler<CxxCheck, ParserRuleContext, CxxSymbol, CxxScanContext> handler) {
         this.detectionStore = detectionStore;
         this.handler = handler;
     }
 
     @Override
-    public void run(@Nonnull Object tree) {
+    public void run(@Nonnull ParserRuleContext tree) {
         run(TraceSymbol.createStart(), tree);
     }
 
     @Override
-    public void run(@Nonnull TraceSymbol<Object> traceSymbol, @Nonnull Object tree) {
-        // TODO: Implement execution logic
+    public void run(@Nonnull TraceSymbol<CxxSymbol> traceSymbol, @Nonnull ParserRuleContext tree) {
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(
+                new CPP14ParserBaseListener() {
+                    @Override
+                    public void enterEveryRule(ParserRuleContext ctx) {
+                        if (detectionStore
+                                .getDetectionRule()
+                                .match(ctx, handler.getLanguageSupport().translation())) {
+                            detectionStore.onReceivingNewDetection(
+                                    new MethodDetection<>(ctx, null));
+                        }
+                    }
+                },
+                tree);
     }
 
     @Nullable @Override
-    public Object extractArgumentFromMethodCaller(
-            @Nonnull Object methodDefinition,
-            @Nonnull Object methodInvocation,
-            @Nonnull Object methodParameterIdentifier) {
+    public ParserRuleContext extractArgumentFromMethodCaller(
+            @Nonnull ParserRuleContext methodDefinition,
+            @Nonnull ParserRuleContext methodInvocation,
+            @Nonnull ParserRuleContext methodParameterIdentifier) {
         return null;
     }
 
     @Nonnull
     @Override
-    public <O> List<ResolvedValue<O, Object>> resolveValuesInInnerScope(
+    public <O> List<ResolvedValue<O, ParserRuleContext>> resolveValuesInInnerScope(
             @Nonnull Class<O> clazz,
-            @Nonnull Object expression,
-            @Nullable IValueFactory<Object> valueFactory) {
+            @Nonnull ParserRuleContext expression,
+            @Nullable IValueFactory<ParserRuleContext> valueFactory) {
         return List.of();
     }
 
     @Override
     public void resolveValuesInOuterScope(
-            @Nonnull Object expression, @Nonnull Parameter<Object> parameter) {
+            @Nonnull ParserRuleContext expression,
+            @Nonnull Parameter<ParserRuleContext> parameter) {
         // TODO: Implement
     }
 
     @Override
     public <O> void resolveMethodReturnValues(
             @Nonnull Class<O> clazz,
-            @Nonnull Object methodDefinition,
-            @Nonnull Parameter<Object> parameter) {
+            @Nonnull ParserRuleContext methodDefinition,
+            @Nonnull Parameter<ParserRuleContext> parameter) {
         // TODO: Implement
     }
 
     @Nullable @Override
-    public <O> ResolvedValue<O, Object> resolveEnumValue(
+    public <O> ResolvedValue<O, ParserRuleContext> resolveEnumValue(
             @Nonnull Class<O> clazz,
-            @Nonnull Object enumClassDefinition,
-            @Nonnull LinkedList<Object> selections) {
+            @Nonnull ParserRuleContext enumClassDefinition,
+            @Nonnull LinkedList<ParserRuleContext> selections) {
         return null;
     }
 
     @Nonnull
     @Override
-    public Optional<TraceSymbol<Object>> getAssignedSymbol(@Nonnull Object expression) {
+    public Optional<TraceSymbol<CxxSymbol>> getAssignedSymbol(
+            @Nonnull ParserRuleContext expression) {
         return Optional.empty();
     }
 
     @Nonnull
     @Override
-    public Optional<TraceSymbol<Object>> getMethodInvocationParameterSymbol(
-            @Nonnull Object methodInvocation, @Nonnull Parameter<Object> parameter) {
+    public Optional<TraceSymbol<CxxSymbol>> getMethodInvocationParameterSymbol(
+            @Nonnull ParserRuleContext methodInvocation,
+            @Nonnull Parameter<ParserRuleContext> parameter) {
         return Optional.empty();
     }
 
     @Nonnull
     @Override
-    public Optional<TraceSymbol<Object>> getNewClassParameterSymbol(
-            @Nonnull Object newClass, @Nonnull Parameter<Object> parameter) {
+    public Optional<TraceSymbol<CxxSymbol>> getNewClassParameterSymbol(
+            @Nonnull ParserRuleContext newClass, @Nonnull Parameter<ParserRuleContext> parameter) {
         return Optional.empty();
     }
 
     @Override
     public boolean isInvocationOnVariable(
-            Object methodInvocation, @Nonnull TraceSymbol<Object> variableSymbol) {
+            ParserRuleContext methodInvocation, @Nonnull TraceSymbol<CxxSymbol> variableSymbol) {
         return false;
     }
 
     @Override
-    public boolean isInitForVariable(Object newClass, @Nonnull TraceSymbol<Object> variableSymbol) {
+    public boolean isInitForVariable(
+            ParserRuleContext newClass, @Nonnull TraceSymbol<CxxSymbol> variableSymbol) {
         return false;
     }
 }

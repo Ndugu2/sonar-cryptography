@@ -22,6 +22,7 @@ package com.ibm.plugin.rules.detection.openssl;
 import com.ibm.engine.rule.IDetectionRule;
 import com.ibm.engine.rule.builder.DetectionRuleBuilder;
 import java.util.List;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 public final class OsslEvpRule {
 
@@ -29,15 +30,34 @@ public final class OsslEvpRule {
         // private
     }
 
-    public static final IDetectionRule<Object> EVP_CIPHER_CTX_NEW =
-            new DetectionRuleBuilder<Object>()
+    public static final IDetectionRule<ParserRuleContext> EVP_ENCRYPT_INIT_EX =
+            new DetectionRuleBuilder<ParserRuleContext>()
                     .createDetectionRule()
-                    .forObjectTypes("EVP_CIPHER_CTX")
-                    .forMethods("EVP_CIPHER_CTX_new")
+                    .forMethods("EVP_EncryptInit_ex")
                     .withMethodParameter("const EVP_CIPHER *")
-                    .buildForContext(new com.ibm.engine.model.context.CipherContext());
+                    .buildForContext(new com.ibm.engine.model.context.CipherContext())
+                    .inBundle(() -> "OpenSSL")
+                    .withoutDependingDetectionRules();
 
-    public static List<IDetectionRule<Object>> rules() {
-        return List.of(EVP_CIPHER_CTX_NEW);
+    public static final IDetectionRule<ParserRuleContext> EVP_DECRYPT_INIT_EX =
+            new DetectionRuleBuilder<ParserRuleContext>()
+                    .createDetectionRule()
+                    .forMethods("EVP_DecryptInit_ex")
+                    .withMethodParameter("const EVP_CIPHER *")
+                    .buildForContext(new com.ibm.engine.model.context.CipherContext())
+                    .inBundle(() -> "OpenSSL")
+                    .withoutDependingDetectionRules();
+
+    public static final IDetectionRule<ParserRuleContext> EVP_CIPHER_INIT_EX =
+            new DetectionRuleBuilder<ParserRuleContext>()
+                    .createDetectionRule()
+                    .forMethods("EVP_CipherInit_ex")
+                    .withMethodParameter("const EVP_CIPHER *")
+                    .buildForContext(new com.ibm.engine.model.context.CipherContext())
+                    .inBundle(() -> "OpenSSL")
+                    .withoutDependingDetectionRules();
+
+    public static List<IDetectionRule<ParserRuleContext>> rules() {
+        return List.of(EVP_ENCRYPT_INIT_EX, EVP_DECRYPT_INIT_EX, EVP_CIPHER_INIT_EX);
     }
 }

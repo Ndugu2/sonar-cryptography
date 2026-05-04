@@ -22,58 +22,70 @@ package com.ibm.engine.language.cxx;
 import com.ibm.engine.detection.IType;
 import com.ibm.engine.detection.MatchContext;
 import com.ibm.engine.language.ILanguageTranslation;
+import com.ibm.engine.language.cxx.antlr.CPP14Parser;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nonnull;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
-public class CxxLanguageTranslation implements ILanguageTranslation<Object> {
+public class CxxLanguageTranslation implements ILanguageTranslation<ParserRuleContext> {
     @Nonnull
     @Override
     public Optional<String> getEnumIdentifierName(
-            @Nonnull MatchContext context, @Nonnull Object identifier) {
-        return Optional.empty(); // TODO: implement sonar-cxx enum extraction
+            @Nonnull MatchContext context, @Nonnull ParserRuleContext identifier) {
+        return Optional.empty();
     }
 
     @Nonnull
     @Override
     public Optional<String> getMethodName(
-            @Nonnull MatchContext matchContext, @Nonnull Object methodInvocation) {
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
+        if (methodInvocation instanceof CPP14Parser.PostfixExpressionContext ctx) {
+            // Check for function call pattern: postfixExpression '(' expressionList? ')'
+            if (ctx.getChildCount() >= 3 && ctx.getChild(1).getText().equals("(")) {
+                ParseTree firstChild = ctx.getChild(0);
+                return Optional.of(firstChild.getText());
+            }
+        }
         return Optional.empty();
     }
 
     @Nonnull
     @Override
     public Optional<IType> getInvokedObjectTypeString(
-            @Nonnull MatchContext matchContext, @Nonnull Object methodInvocation) {
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
+        // For C++, object type might be hard to get without semantic analysis.
+        // Returning empty for now.
         return Optional.empty();
     }
 
     @Nonnull
     @Override
     public Optional<IType> getMethodReturnTypeString(
-            @Nonnull MatchContext matchContext, @Nonnull Object methodInvocation) {
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
         return Optional.empty();
     }
 
     @Nonnull
     @Override
     public List<IType> getMethodParameterTypes(
-            @Nonnull MatchContext matchContext, @Nonnull Object methodInvocation) {
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
         return Collections.emptyList();
     }
 
     @Nonnull
     @Override
     public Optional<String> resolveIdentifierAsString(
-            @Nonnull MatchContext matchContext, @Nonnull Object identifierTree) {
-        return Optional.empty();
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext identifierTree) {
+        return Optional.ofNullable(identifierTree.getText());
     }
 
     @Nonnull
     @Override
     public Optional<String> getEnumClassName(
-            @Nonnull MatchContext matchContext, @Nonnull Object enumClass) {
+            @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext enumClass) {
         return Optional.empty();
     }
 }
