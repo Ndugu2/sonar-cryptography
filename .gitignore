@@ -3,6 +3,14 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Generated scan output ###
+cbom.json
+maven_fast/
+*.tokens
+*.interp
+generated-sources/
+.antlr/
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

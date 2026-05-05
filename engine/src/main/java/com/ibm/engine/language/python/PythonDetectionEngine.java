@@ -77,6 +77,7 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 && methodParameterIdentifier instanceof Name nameTree) {
 
             // Check that we have the expected number of parameters
+            @Nonnull
             Optional<List<org.sonar.plugins.python.api.tree.Parameter>> parameters =
                     Optional.ofNullable(methodTree)
                             .map(FunctionDef::parameters)
@@ -110,11 +111,7 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 Optional<String> name =
                         parameters
                                 .filter(parameterList -> finalIndex < parameterList.size())
-                                .map(
-                                        parameterList ->
-                                                Optional.ofNullable(parameterList.get(finalIndex)))
-                                // .filter(Objects::nonNull)
-                                .map(Optional::get)
+                                .map(parameterList -> parameterList.get(finalIndex))
                                 .map(org.sonar.plugins.python.api.tree.Parameter::name)
                                 .map(Name::name);
 
@@ -126,8 +123,9 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
         return null;
     }
 
+    @Nonnull
     @Override
-    public <O> @Nonnull List<ResolvedValue<O, Tree>> resolveValuesInInnerScope(
+    public <O> List<ResolvedValue<O, Tree>> resolveValuesInInnerScope(
             @Nonnull Class<O> clazz,
             @Nonnull Tree expression,
             @Nullable IValueFactory<Tree> valueFactory) {
@@ -154,13 +152,14 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
             if (optionalMethodTree.isEmpty()) {
                 return;
             }
-            Tree methodTree = optionalMethodTree.get();
+            @Nonnull Tree methodTree = optionalMethodTree.get();
 
             // If we cannot resolve the expression, it shoud be because it is an argument of the
             // enclosing function. We therefore create a hook, but we need to get the argument to
             // which `expressionTree` resolves to.
             // To do so, we call `resolveValues` with the special parameter
             // `returningEnclosingParam` set to true.
+            @Nonnull
             List<ResolvedValue<Object, Tree>> resolvedValues =
                     PythonSemantic.resolveValues(
                             Object.class, expressionTree, new LinkedList<>(), null, true, this);
@@ -168,7 +167,7 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
             if (resolvedValues.size() != 1) {
                 return;
             }
-            final Tree resolvedParameter = resolvedValues.get(0).tree();
+            @Nonnull final Tree resolvedParameter = resolvedValues.get(0).tree();
 
             createAMethodHook(methodTree, resolvedParameter, detectableParameter);
             // Note that compared to the Java implementation, there is no case where we call
@@ -227,16 +226,19 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
         throw new UnsupportedOperationException("Unimplemented method 'resolveMethodReturnValues'");
     }
 
-    @Override
+    @Nullable @Override
     public <O> ResolvedValue<O, Tree> resolveEnumValue(
-            Class<O> clazz, Tree enumClassDefinition, LinkedList<Tree> selections) {
+            @Nonnull Class<O> clazz,
+            @Nonnull Tree enumClassDefinition,
+            @Nonnull LinkedList<Tree> selections) {
         // TODO: Enums are not a major part of Pythonm, it is left for later
         // https://docs.python.org/3/library/enum.html
         throw new UnsupportedOperationException("Unimplemented method 'resolveEnumValue'");
     }
 
+    @Nonnull
     @Override
-    public Optional<TraceSymbol<Symbol>> getAssignedSymbol(Tree expression) {
+    public Optional<TraceSymbol<Symbol>> getAssignedSymbol(@Nonnull Tree expression) {
         // When the expression is an assignment like `43` in `global_var = 43`, it will return the
         // symbol of the Name `global_var`.
         // In Java, `getAssignedSymbol` seem to return the symbol of the *parent* of the expression.
@@ -274,20 +276,24 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
         throw new UnsupportedOperationException("Unimplemented case.");
     }
 
+    @Nonnull
     @Override
     public Optional<TraceSymbol<Symbol>> getMethodInvocationParameterSymbol(
-            Tree methodInvocationTree, Parameter<Tree> parameter) {
+            @Nonnull Tree methodInvocationTree, @Nonnull Parameter<Tree> parameter) {
         if (methodInvocationTree instanceof CallExpression callExpression) {
-            return getTraceSymbol(parameter, callExpression.arguments());
+            @Nonnull List<Argument> arguments = callExpression.arguments();
+            return getTraceSymbol(parameter, arguments);
         }
         return Optional.empty();
     }
 
+    @Nonnull
     @Override
     public Optional<TraceSymbol<Symbol>> getNewClassParameterSymbol(
-            Tree newClass, Parameter<Tree> parameter) {
+            @Nonnull Tree newClass, @Nonnull Parameter<Tree> parameter) {
         if (newClass instanceof CallExpression callExpression) {
-            return getTraceSymbol(parameter, callExpression.arguments());
+            @Nonnull List<Argument> arguments = callExpression.arguments();
+            return getTraceSymbol(parameter, arguments);
         }
         return Optional.empty();
     }
@@ -296,45 +302,52 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
     private Optional<TraceSymbol<Symbol>> getTraceSymbol(
             @Nonnull Parameter<Tree> parameter, @Nonnull List<Argument> arguments) {
         if (parameter.getIndex() >= arguments.size()) {
-            return Optional.of(TraceSymbol.createWithStateDifferent());
+            @Nonnull
+            Optional<TraceSymbol<Symbol>> res = Optional.of(TraceSymbol.createWithStateDifferent());
+            return res;
         }
         Argument arg = arguments.get(parameter.getIndex());
         if (arg instanceof RegularArgument regularArg) {
             Expression expressionArg = regularArg.expression();
             if (expressionArg.is(Tree.Kind.NAME)) {
                 Name nameArg = (Name) expressionArg;
-                return Optional.of(TraceSymbol.createFrom(nameArg.symbol()));
+                @Nonnull
+                Optional<TraceSymbol<Symbol>> res =
+                        Optional.of(TraceSymbol.createFrom(nameArg.symbol()));
+                return res;
             }
         }
-        return Optional.of(TraceSymbol.createWithStateNoSymbol());
+        @Nonnull
+        Optional<TraceSymbol<Symbol>> res = Optional.of(TraceSymbol.createWithStateNoSymbol());
+        return res;
     }
 
     @Override
     public boolean isInvocationOnVariable(
-            Tree methodInvocation, TraceSymbol<Symbol> variableSymbol) {
+            @Nonnull Tree methodInvocation, @Nonnull TraceSymbol<Symbol> variableSymbol) {
         if (methodInvocation instanceof CallExpression callExpression) {
             if (!variableSymbol.is(TraceSymbol.State.SYMBOL)) {
                 return false;
             }
             Symbol variable = variableSymbol.getSymbol();
-            Expression callee = callExpression.callee();
-            if (variable == null || !callee.is(Tree.Kind.QUALIFIED_EXPR)) {
+            if (variable == null) {
                 return false;
             }
 
-            QualifiedExpression qualifiedExpression = (QualifiedExpression) callee;
-            if (qualifiedExpression.qualifier() instanceof Name name) {
-                Optional<String> nameString = Optional.of(name).map(Name::symbol).map(Symbol::name);
-                return nameString.isPresent() && nameString.get().equals(variable.name());
+            if (callExpression.callee() instanceof QualifiedExpression qualifiedExpression) {
+                Expression qualifier = qualifiedExpression.qualifier();
+                if (qualifier instanceof Name name) {
+                    Symbol qualifierSymbol = name.symbol();
+                    return variable.equals(qualifierSymbol);
+                }
             }
-
-            return false;
         }
         return false;
     }
 
     @Override
-    public boolean isInitForVariable(Tree newClass, TraceSymbol<Symbol> variableSymbol) {
+    public boolean isInitForVariable(
+            @Nonnull Tree newClass, @Nonnull TraceSymbol<Symbol> variableSymbol) {
         if (!variableSymbol.is(TraceSymbol.State.SYMBOL)) {
             return false;
         }
@@ -351,6 +364,20 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
 
     private void analyseExpression(
             @Nonnull TraceSymbol<Symbol> traceSymbol, @Nonnull CallExpression expressionTree) {
+        boolean isInvocation =
+                isInvocationOnVariable(expressionTree, traceSymbol)
+                        || isInitForVariable(expressionTree, traceSymbol);
+
+        // Check if the variable symbols for the method (if applicable) are connected
+        Optional<Symbol> assignedSymbol =
+                getAssignedSymbol(expressionTree).map(TraceSymbol::getSymbol);
+
+        if (traceSymbol.is(TraceSymbol.State.DIFFERENT)
+                || (traceSymbol.is(TraceSymbol.State.SYMBOL) && !isInvocation)
+                || (traceSymbol.is(TraceSymbol.State.NO_SYMBOL) && assignedSymbol.isPresent())) {
+            return;
+        }
+
         if (detectionStore.getDetectionRule().is(MethodDetectionRule.class)) {
             MethodDetection<Tree> methodDetection = new MethodDetection<>(expressionTree, null);
             detectionStore.onReceivingNewDetection(methodDetection);
@@ -364,22 +391,16 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
         }
 
         // Extracts the arguments for the provided expression
-        List<Argument> arguments = expressionTree.arguments();
-        boolean isInvocation =
-                isInvocationOnVariable(expressionTree, traceSymbol)
-                        || isInitForVariable(expressionTree, traceSymbol);
-        // TODO: It would be better to have a case disjunction to use either
-        // isInvocationOnVariable or isInitForVariable, but it is difficult in Python
+        @Nonnull List<Argument> arguments = expressionTree.arguments();
 
         int index = 0;
         for (Parameter<Tree> parameter : detectionRule.parameters()) {
-            if (!checkCurrentIndexState(
-                    index, arguments, isInvocation, traceSymbol, expressionTree)) {
+            if (arguments.size() <= index) {
                 index++;
                 continue;
             }
             // the expression tree of the parameter
-            Tree expression = arguments.get(index); // this is an Argument tree
+            @Nonnull Tree expression = arguments.get(index); // this is an Argument tree
             if (expression instanceof RegularArgument regularArgument) {
                 expression = regularArgument.expression();
             }
@@ -392,6 +413,7 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 DetectableParameter<Tree> detectableParameter =
                         (DetectableParameter<Tree>) parameter;
                 // try to resolve value in inner scope
+                @Nonnull
                 List<ResolvedValue<Object, Tree>> resolvedValues =
                         resolveValuesInInnerScope(
                                 Object.class, expression, detectableParameter.getiValueFactory());
@@ -401,12 +423,14 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                 } else {
                     resolvedValues.stream()
                             .map(
-                                    resolvedValue ->
-                                            new ValueDetection<>(
-                                                    resolvedValue,
-                                                    detectableParameter,
-                                                    expressionTree,
-                                                    expressionTree))
+                                    resolvedValue -> {
+                                        @Nonnull ResolvedValue<Object, Tree> val = resolvedValue;
+                                        return new ValueDetection<>(
+                                                val,
+                                                detectableParameter,
+                                                expressionTree,
+                                                expressionTree);
+                                    })
                             .forEach(detectionStore::onReceivingNewDetection);
                 }
             } else if (!parameter.getDetectionRules().isEmpty()) {
@@ -417,40 +441,12 @@ public class PythonDetectionEngine implements IDetectionEngine<Tree, Symbol> {
                  * In this case, we resolve the parameter with the depending detection rule with an EXPRESSION scope,
                  * this way we ensure to only resolve the right parameter content and not similar calls in the same function scope.
                  */
+                @Nonnull Tree expr = expression;
                 detectionStore.onDetectedDependingParameter(
-                        parameter, expression, DetectionStore.Scope.EXPRESSION);
+                        parameter, expr, DetectionStore.Scope.EXPRESSION);
             }
 
             index++;
         }
-    }
-
-    private boolean checkCurrentIndexState(
-            int index,
-            List<Argument> arguments,
-            boolean isInvocation,
-            @Nonnull TraceSymbol<Symbol> traceSymbol,
-            @Nonnull CallExpression expressionTree) {
-        /*
-         * Check if the matched method does have equal or less number of arguments compared to the index
-         * of interested defined in the detection rule.
-         * This will prevent an index out of bound
-         */
-        if (arguments.size() <= index) {
-            return false;
-        }
-
-        // Check if the variable symbols for the method (if applicable) are connected
-        Optional<Symbol> assignedSymbol =
-                getAssignedSymbol(expressionTree).map(ts -> ts.getSymbol());
-
-        return !(traceSymbol.is(TraceSymbol.State.DIFFERENT)
-                ||
-                // checks if a symbol is set and therefore expected, then check if the symbols
-                // match.
-                (traceSymbol.is(TraceSymbol.State.SYMBOL) && !isInvocation)
-                ||
-                // checks if no symbol is expected, but the matched method has one.
-                (traceSymbol.is(TraceSymbol.State.NO_SYMBOL) && assignedSymbol.isPresent()));
     }
 }
