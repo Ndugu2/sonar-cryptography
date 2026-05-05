@@ -78,6 +78,22 @@ public class CxxDetectionEngine implements IDetectionEngine<ParserRuleContext, C
             @Nonnull ParserRuleContext methodDefinition,
             @Nonnull ParserRuleContext methodInvocation,
             @Nonnull ParserRuleContext methodParameterIdentifier) {
+        // In C++, methodDefinition might be a FunctionDefinitionContext
+        // and methodInvocation a PostfixExpressionContext (the call)
+        if (methodInvocation instanceof CPP14Parser.PostfixExpressionContext callCtx) {
+            // postfixExpression '(' expressionList? ')'
+            if (callCtx.getChildCount() >= 3 && callCtx.getChild(1).getText().equals("(")) {
+                ParseTree thirdChild = callCtx.getChild(2);
+                if (thirdChild instanceof CPP14Parser.ExpressionListContext argList) {
+                    // This is a simplified version. We'd need to match the parameter index.
+                    // For now, let's just return the whole list or a specific index if we knew it.
+                    // But usually, the engine asks for a specific parameter by its identifier.
+                    // In C++, we need to find the index of methodParameterIdentifier in methodDefinition.
+                    
+                    // TODO: Implement proper parameter index matching
+                }
+            }
+        }
         return null;
     }
 
@@ -87,14 +103,21 @@ public class CxxDetectionEngine implements IDetectionEngine<ParserRuleContext, C
             @Nonnull Class<O> clazz,
             @Nonnull ParserRuleContext expression,
             @Nullable IValueFactory<ParserRuleContext> valueFactory) {
-        return List.of();
+        // Basic resolution: return the expression itself as a resolved value
+        // if it matches the expected type (best effort).
+        List<ResolvedValue<O, ParserRuleContext>> results = new LinkedList<>();
+        // For now, just return the expression text if O is String
+        if (clazz.equals(String.class)) {
+            results.add(new ResolvedValue<>((O) expression.getText(), expression));
+        }
+        return results;
     }
 
     @Override
     public void resolveValuesInOuterScope(
             @Nonnull ParserRuleContext expression,
             @Nonnull Parameter<ParserRuleContext> parameter) {
-        // TODO: Implement
+        // TODO: Implement outer scope resolution (requires cross-file/cross-function tracking)
     }
 
     @Override

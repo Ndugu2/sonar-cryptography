@@ -27,11 +27,18 @@ public class CxxScannerRuleDefinition implements RulesDefinition {
     @Override
     public void define(Context context) {
         NewRepository repository =
-                context.createRepository("cbomkit-cryptography-cxx", "cpp")
+                context.createRepository(REPOSITORY_KEY, "cpp")
                         .setName("CBOMkit Cryptography Repository");
-        // We do not define specific rules here for the best-effort since we don't have the
-        // sonar-cxx API
-        // In a real implementation, we would register the CxxInventoryRule here.
+
+        // Use RuleMetadataLoader to load metadata from annotations and resources
+        // For C++, we might need to manually register if we don't have the resource files yet,
+        // but let's try to follow the pattern or at least register the class.
+        for (Class<?> checkClass : CxxRuleList.getChecks()) {
+            repository.createRule(checkClass.getAnnotation(org.sonar.check.Rule.class).key())
+                    .setName(checkClass.getSimpleName())
+                    .setHtmlDescription("Detection rule for C++ cryptographic assets.");
+        }
+
         repository.done();
     }
 }

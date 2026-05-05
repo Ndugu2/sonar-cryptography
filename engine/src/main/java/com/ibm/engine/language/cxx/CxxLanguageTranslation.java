@@ -46,6 +46,15 @@ public class CxxLanguageTranslation implements ILanguageTranslation<ParserRuleCo
             // Check for function call pattern: postfixExpression '(' expressionList? ')'
             if (ctx.getChildCount() >= 3 && ctx.getChild(1).getText().equals("(")) {
                 ParseTree firstChild = ctx.getChild(0);
+                // Handle complex postfix expressions like obj.func or obj->func
+                if (firstChild instanceof CPP14Parser.PostfixExpressionContext firstPostfix) {
+                    if (firstPostfix.getChildCount() >= 3) {
+                        String op = firstPostfix.getChild(1).getText();
+                        if (op.equals(".") || op.equals("->")) {
+                            return Optional.of(firstPostfix.getChild(2).getText());
+                        }
+                    }
+                }
                 return Optional.of(firstChild.getText());
             }
         }
@@ -57,7 +66,21 @@ public class CxxLanguageTranslation implements ILanguageTranslation<ParserRuleCo
     public Optional<IType> getInvokedObjectTypeString(
             @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
         // For C++, object type might be hard to get without semantic analysis.
-        // Returning empty for now.
+        // For now, we can try to extract the qualifier if it's a member access.
+        if (methodInvocation instanceof CPP14Parser.PostfixExpressionContext ctx) {
+            if (ctx.getChildCount() >= 3 && ctx.getChild(1).getText().equals("(")) {
+                ParseTree firstChild = ctx.getChild(0);
+                if (firstChild instanceof CPP14Parser.PostfixExpressionContext firstPostfix) {
+                    if (firstPostfix.getChildCount() >= 3) {
+                        String op = firstPostfix.getChild(1).getText();
+                        if (op.equals(".") || op.equals("->")) {
+                            String qualifier = firstPostfix.getChild(0).getText();
+                            return Optional.of((String type) -> type.equals(qualifier));
+                        }
+                    }
+                }
+            }
+        }
         return Optional.empty();
     }
 
@@ -72,6 +95,8 @@ public class CxxLanguageTranslation implements ILanguageTranslation<ParserRuleCo
     @Override
     public List<IType> getMethodParameterTypes(
             @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext methodInvocation) {
+        // In C++, we don't have easy access to types without a symbol table.
+        // We could potentially return the text of the parameters as a fallback for matching.
         return Collections.emptyList();
     }
 
@@ -79,6 +104,10 @@ public class CxxLanguageTranslation implements ILanguageTranslation<ParserRuleCo
     @Override
     public Optional<String> resolveIdentifierAsString(
             @Nonnull MatchContext matchContext, @Nonnull ParserRuleContext identifierTree) {
+        if (identifierTree instanceof CPP14Parser.IdExpressionContext
+                || identifierTree instanceof CPP14Parser.UnqualifiedIdContext) {
+            return Optional.of(identifierTree.getText());
+        }
         return Optional.ofNullable(identifierTree.getText());
     }
 
