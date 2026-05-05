@@ -261,7 +261,7 @@ public final class PythonSemantic {
         if (wantedStringType.endsWith(".*")) {
             result =
                     fullyQualifiedNameStringType.startsWith(
-                                     wantedStringType.substring(0, wantedStringType.length() - 2))
+                                    wantedStringType.substring(0, wantedStringType.length() - 2))
                             || shortenedFullyQualifiedNameStringType.startsWith(
                                     wantedStringType.substring(0, wantedStringType.length() - 2));
         } else {
@@ -369,10 +369,10 @@ public final class PythonSemantic {
                 usages.removeIf(
                         usage ->
                                 (usage.tree() instanceof Name usageNameTree
-                                         && (usageNameTree.equals(nameTree)
-                                                 || (usageNameTree.firstToken() != null
-                                                         && usageNameTree.firstToken().line()
-                                                                 > currentLine))));
+                                        && (usageNameTree.equals(nameTree)
+                                                || (usageNameTree.firstToken() != null
+                                                        && usageNameTree.firstToken().line()
+                                                                > currentLine))));
             }
 
             // If the current Name has no assignment, function declaration or parameter usage, then
@@ -478,7 +478,7 @@ public final class PythonSemantic {
                                     if (statementTree instanceof ReturnStatement returnStatementTree
                                             && !returnStatementTree.expressions().isEmpty()) {
                                         if (subscriptionIndex
-                                                         instanceof Integer intSubscriptionIndex
+                                                        instanceof Integer intSubscriptionIndex
                                                 && intSubscriptionIndex
                                                         < returnStatementTree
                                                                 .expressions()
@@ -557,9 +557,9 @@ public final class PythonSemantic {
                             // Continue the inner resolution if we have a non-empty
                             // `argsMappingList`
                             if (usageNameTree.parent()
-                                             instanceof
-                                             org.sonar.plugins.python.api.tree.Parameter
-                                                     parameterTree
+                                            instanceof
+                                            org.sonar.plugins.python.api.tree.Parameter
+                                                    parameterTree
                                     && !argsMappingList.isEmpty()) {
                                 Argument argument = argsMappingList.pollLast().get(parameterTree);
                                 if (argument instanceof RegularArgument regularArgument) {

@@ -19,6 +19,10 @@
  */
 package com.ibm.engine.language;
 
+import com.ibm.engine.language.cxx.CxxCheck;
+import com.ibm.engine.language.cxx.CxxLanguageSupport;
+import com.ibm.engine.language.cxx.CxxScanContext;
+import com.ibm.engine.language.cxx.CxxSymbol;
 import com.ibm.engine.language.go.GoLanguageSupport;
 import com.ibm.engine.language.go.GoScanContext;
 import com.ibm.engine.language.java.JavaLanguageSupport;
@@ -61,5 +65,12 @@ public final class LanguageSupporter {
     @Nonnull
     public static ILanguageSupport<GoCheck, Tree, Symbol, GoScanContext> goLanguageSupporter() {
         return new GoLanguageSupport();
+    }
+
+    @Nonnull
+    public static ILanguageSupport<
+                    CxxCheck, org.sonar.plugins.cpp.api.tree.Tree, CxxSymbol, CxxScanContext>
+            cxxLanguageSupporter() {
+        return new CxxLanguageSupport();
     }
 }
